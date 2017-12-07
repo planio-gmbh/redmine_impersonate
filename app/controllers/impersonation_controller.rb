@@ -6,16 +6,27 @@ class ImpersonationController < ApplicationController
 
   def create
     if !session[:true_user_id]
-      session[:true_user_id] = User.current.id
+      admin_user = User.current
       impersonated_user = User.find(params[:user_id])
-      User.current = impersonated_user
-      session[:user_id] = impersonated_user.id
 
-      if impersonated_user.respond_to?(:generate_session_token)
-        session[:tk] = impersonated_user.generate_session_token
-      end
+      # Clear any remaining data in admin's old session
+      reset_session
+
+      # Remember the original admin user in the session and set the new user for the rest of request
+      session[:true_user_id] = admin_user.id
+      User.current = impersonated_user
+
+      # Start a new session for the impersonated user
+      start_user_session(impersonated_user)
+
+      # Don't require password change of target user
+      session.delete(:pwd)
+
+      # Don't force 2fa activation for the target user
+      session.delete(:must_activate_twofa)
     end
 
+    # Redirect to the home with the new impersonated user
     redirect_to home_url
   end
 
