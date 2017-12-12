@@ -7,7 +7,7 @@ class ImpersonationController < ApplicationController
   def create
     if !session[:true_user_id]
       admin_user = User.current
-      impersonated_user = User.find(params[:user_id])
+      impersonated_user = User.active.logged.find(params[:user_id])
 
       # Clear any remaining data in admin's old session
       reset_session
